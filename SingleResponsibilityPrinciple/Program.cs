@@ -45,8 +45,6 @@ namespace SingleResponsibilityPrinciple
             tradeProcessor.ProcessTrades();
 
             //Console.ReadKey();
-
-
         }
     }
 }
