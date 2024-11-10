@@ -1,46 +1,61 @@
 ﻿using SingleResponsibilityPrinciple.Contracts;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace SingleResponsibilityPrinciple
 {
     public class URLTradeDataProvider : ITradeDataProvider
     {
-        string url;
-        ILogger logger;
+        private readonly string _url;
+        private readonly ILogger _logger;
+
         public URLTradeDataProvider(string url, ILogger logger)
         {
-            this.url = url;
-            this.logger = logger;
+            _url = url;
+            _logger = logger;
         }
 
-        public IEnumerable<string> GetTradeData()
+        public async Task<IEnumerable<string>> GetTradeData()
         {
-            List<string> tradeData = new List<string>();
-            logger.LogInfo("Reading trades from URL: " + url);
+            var tradeData = new List<string>();
+            _logger.LogInfo("Reading trades from URL: " + _url);
 
-            using (HttpClient client = new HttpClient())
+            using (var client = new HttpClient())
             {
-                HttpResponseMessage response = client.GetAsync(url).Result;
-                if (!response.IsSuccessStatusCode)
+                HttpResponseMessage response;
+                try
                 {
-                    logger.LogWarning($"Failed to retrieve data. Status code: {response.StatusCode}");
-                    throw new Exception($"Error retrieving data from URL: {url}");
+                    response = await client.GetAsync(_url);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to retrieve data from URL: {_url}. Exception: {ex.Message}");
+                    // Return an empty list directly since it's an async method
+                    return new List<string>(); // Simply return an empty list
                 }
 
-                using (Stream stream = response.Content.ReadAsStreamAsync().Result)
-                using (StreamReader reader = new StreamReader(stream))
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning($"Failed to retrieve data. Status code: {response.StatusCode}");
+                    // Return an empty list if status code is not successful
+                    return new List<string>(); // Simply return an empty list
+                }
+
+                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var reader = new StreamReader(stream))
                 {
                     string line;
-                    while ((line = reader.ReadLine()) != null)
+                    while ((line = await reader.ReadLineAsync()) != null)
                     {
                         tradeData.Add(line);
                     }
                 }
             }
+
+            // Return the tradeData list directly; no need to wrap it in Task.FromResult
             return tradeData;
         }
     }

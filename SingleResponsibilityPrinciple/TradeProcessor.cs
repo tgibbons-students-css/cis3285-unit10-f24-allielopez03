@@ -1,5 +1,6 @@
 ﻿
 using SingleResponsibilityPrinciple.Contracts;
+using System.Threading.Tasks;
 
 namespace SingleResponsibilityPrinciple
 {
@@ -12,9 +13,11 @@ namespace SingleResponsibilityPrinciple
             this.tradeStorage = tradeStorage;
         }
 
-        public void ProcessTrades()
+        // Make ProcessTrades async
+        public async Task ProcessTrades()
         {
-            var lines = tradeDataProvider.GetTradeData();
+            // Await the GetTradeData method
+            var lines = await tradeDataProvider.GetTradeData();
             var trades = tradeParser.Parse(lines);
             tradeStorage.Persist(trades);
         }
